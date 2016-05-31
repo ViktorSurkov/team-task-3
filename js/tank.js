@@ -14,7 +14,8 @@ function Tank(sizeCoef, battlefield) {
   this._sizeCoef = sizeCoef;
   this._battlefield = battlefield;
 
-  var side = this._battlefield.getDims().side * this._sizeCoef;
+  var bfDims = this._battlefield.getDims();
+  var side = bfDims.side * this._sizeCoef;
   var pos = this._battlefield.getMainTankStart(side, side);
 
   // tank picture
@@ -39,6 +40,9 @@ function Tank(sizeCoef, battlefield) {
     left: pos.left,
     top: pos.top
   });
+
+  // creates tank moving navigator
+  this._navigator = new Navigator(side, side, bfDims, battlefield.getWalls());
 
   // default direction
   this._dir = DIRECTION.UP;
@@ -123,21 +127,39 @@ Tank.prototype.move = function (dir) {
   // sets the move state and play engine sound
   $("#tank").css("background-image", "url('./img/tank_move_up.gif')");
 
-  var left = $("#tank").css("left");
-  var top = $("#tank").css("top");
+  var pos = {
+    left: parseFloat($("#tank").css("left")),
+    top: parseFloat($("#tank").css("top"))
+  }
+
+  var newPos = {
+    left: pos.left,
+    top: pos.top
+  };
 
   // should replace canMove() in future
-  var newMoveDist = this._battlefield.calcMoveDist(left, top, dir, moveDist);
-
-  if(this._battlefield.canMove(left, top, dir, moveDist)) {
-    var offset = parseFloat($("#tank").css(dirStr)) + moveDist;
-    $("#tank").css(dirStr, function(index) {
-      return offset + 'px';
+  if(this._navigator.calcMovePos(pos, dir, moveDist, newPos)) {
+    //var offset = parseFloat($("#tank").css(dirStr)) + moveDist;
+    $("#tank").css({
+      left: newPos.left,
+      top: newPos.top
     });
 
-    this._dims[dirStr] = offset;
+    this._dims.left = newPos.left;
+    this._dims.top = newPos.top;
     //this.saveSizeCoef();
   }
+
+  // Old move ability check
+  // if(this._battlefield.canMove(left, top, dir, moveDist)) {
+  //   var offset = parseFloat($("#tank").css(dirStr)) + moveDist;
+  //   $("#tank").css(dirStr, function(index) {
+  //     return offset + 'px';
+  //   });
+  //
+  //   this._dims[dirStr] = offset;
+  //   //this.saveSizeCoef();
+  // }
 };
 
 Tank.prototype._calcTurn = function (oldDir, dir) {
