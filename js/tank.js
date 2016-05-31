@@ -8,57 +8,67 @@ var DIRECTION = {
   LEFT: 3
 }
 
-// tank dimensions
-var TANK_DIMS = {
-  WIDTH: 60,
-  HEIGHT: 60}
+var MOVE_DIST = 8;
 
-function Tank(startPos, battlefield) {
-  var tank = $("<div>", {id: "tank"});
+function Tank(sizeCoef, battlefield) {
+  this._sizeCoef = sizeCoef;
+  this._battlefield = battlefield;
+
+  var side = this._battlefield.getDims().side * this._sizeCoef;
+  var pos = this._battlefield.getMainTankStart(side, side);
+
+  // tank picture
+  var tank = $("<div>", {id: this.getId()});
   tank.css({
-    "widht": TANK_DIMS.WIDTH + "px",
-    "height": TANK_DIMS.HEIGHT + "px",
+    "width": side + "px",
+    "height": side + "px",
     "background-image": "url('./img/tank_up.gif')",
+    "background-size": "100% 100%",//side + "px" + side + "px",
     "transition": "all 0.1s ease-out 0s",
     "position": "relative",
-    "top": startPos.top + "px",
-    "left": startPos.left + "px"
+    "top": pos.top + "px",
+    "left": pos.left + "px"
+    //"border": "0.5px solid green"
   });
 
-  $("#" + startPos.id).append(tank);
+  $("#" + pos.id).append(tank);
 
+  this.saveDims({
+    width: side,
+    height: side,
+    left: pos.left,
+    top: pos.top
+  });
+
+  // default direction
   this._dir = DIRECTION.UP;
 
-  this._battlefield = battlefield;
+  // sounds
+  this.appendSounds();
+  this.playIdling();
 }
 
-Tank.prototype.directionData = function (dir) {
-  var data = {};
-
-  switch (dir) {
-    case DIRECTION.UP:
-      data.staticPic = "url('./img/tank_up.gif')";
-      data.movePic = "url('./img/tank_move_up.gif";
-      break;
-    case DIRECTION.RIGHT:
-      data.staticPic = "url('./img/tank_right.gif')";
-      data.movePic = "url('./img/tank_move_right.gif')";
-      break;
-    case DIRECTION.DOWN:
-      data.staticPic = "url('./img/tank_down.gif')";
-      data.movePic = "url('./img/tank_move_down.gif')";
-      break;
-    case DIRECTION.LEFT:
-      data.staticPic = "url('./img/tank_left.gif')";
-      data.movePic = "url('./img/tank_move_left.gif')";
-      break;
-    default:
-      data.staticPic = "url('./img/tank_up.gif')";
-      data.movePic = "url('./img/tank_move_down.gif')";
-  }
-
-  return data;
+/////////////////////////////////////////////////
+///           Tank params
+Tank.prototype.getId = function () {
+  return "tank";
 }
+
+Tank.prototype.getSizeCoef = function () {
+  return this._sizeCoef;
+}
+
+// Tank dimensions { width: [some], height: [some], left: [some], top: [some] }
+Tank.prototype.getDims = function () {
+  return this._dims;
+}
+
+Tank.prototype.saveDims = function (dims) {
+  this._dims = dims;
+}
+
+////////////////////////////////////////////////
+///           Moving methods
 
 Tank.prototype.turn = function (dir) {
   var oldDir = this._dir;
@@ -68,8 +78,6 @@ Tank.prototype.turn = function (dir) {
   if(oldDir != dir) {
     $("#tank").css('transform', 'rotate('+ this._calcTurn(oldDir, dir) + 'deg)');
   }
-//var dirData = this.directionData();
-//this._tank.css('background-image', dirData.staticPic);
 }
 
 Tank.prototype.getDir = function () {
@@ -82,13 +90,16 @@ Tank.prototype.move = function (dir) {
   // turns tank
   this.turn(dir);
 
-  // if tank has turned - return
-  if(dir != oldDir){
-    return;
-  }
+  // sets sounds
+  $("#idling")[0].pause();
+  $("#drive")[0].play();
 
-  var dirStr,
-      moveDist = 20;
+  // if tank has turned - return
+  if(dir != oldDir)
+    return;
+
+  var dirStr;
+      moveDist = this._battlefield.getDims().side * 0.019;
 
   switch (dir) {
     case DIRECTION.UP:
@@ -109,18 +120,23 @@ Tank.prototype.move = function (dir) {
       dirStr = "top"
   }
 
+  // sets the move state and play engine sound
   $("#tank").css("background-image", "url('./img/tank_move_up.gif')");
-  setTimeout(function() {
-    $("#tank").css("background-image", "url('./img/tank_up.gif')");;
-  }, 400);
 
   var left = $("#tank").css("left");
   var top = $("#tank").css("top");
 
+  // should replace canMove() in future
+  var newMoveDist = this._battlefield.calcMoveDist(left, top, dir, moveDist);
+
   if(this._battlefield.canMove(left, top, dir, moveDist)) {
+    var offset = parseFloat($("#tank").css(dirStr)) + moveDist;
     $("#tank").css(dirStr, function(index) {
-      return (parseInt($("#tank").css(dirStr)) + moveDist) + 'px';
+      return offset + 'px';
     });
+
+    this._dims[dirStr] = offset;
+    //this.saveSizeCoef();
   }
 };
 
@@ -206,6 +222,9 @@ Tank.prototype.stopMove = function (dir) {
   $("#idling")[0].play();
 }
 
+////////////////////////////////////////////////////////
+///             Sound methods
+
 Tank.prototype.appendSounds = function () {
   var idlingAudio = $("<audio>", {
     id: "idling",
@@ -220,3 +239,11 @@ Tank.prototype.appendSounds = function () {
     src: "./sound/drive.wav",
     loop: "loop"
   });
+
+  $(document.body).append(driveAudio);
+  //$(document.body).append(<audio src='aaa.mp3' autoplay></audio>)
+}
+
+Tank.prototype.playIdling = function () {
+  $("#idling")[0].play();
+}

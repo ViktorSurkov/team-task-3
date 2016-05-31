@@ -6,8 +6,8 @@ $(document).ready(function () {
     game.onKeyDown(e);
   }
 
-  document.body.onkeyup = function () {
-    game.onKeyUp();
+  document.body.onkeyup = function (e) {
+    game.onKeyUp(e);
   }
 });
 
@@ -26,50 +26,46 @@ var KEYCODE_LEFT = 37,
 
 function Game() {
   $(document.body).css({
-    // "display": "flex",
-    // "justify-content": "center",
-    "background-color": "orange"
+    backgroundColor: "grey"
   });
 
-  this._battlefield = new Battlefield(700, 700);
-  var pos = this._battlefield.getStartPosition(TANK_DIMS.WIDTH, TANK_DIMS.HEIGHT);
+  var tankSizeCoef = 0.09;
+  var minMarginCoef = 0.05;
 
-  // init position and // callback to check if move is possible
-  this._tank = new Tank(pos, this._battlefield);
+  // creates battlefield with tank
+  this._battlefield = new Battlefield(minMarginCoef);
+  this._battlefield.appendMainTank(new Tank(tankSizeCoef, this._battlefield));
+
+  // init game resizer
+  this._resizer = new Resizer(this._battlefield);
 }
 
 Game.prototype.onKeyDown = function (e) {
   if (e.keyCode == KEYCODE_LEFT) {
-    this._tank.move(DIRECTION.LEFT);
-    // rotate(tank, DIRECTION.LEFT);
-    // move(tank, DIRECTION.LEFT);
-    // tank.css("left", function(index) {
-    //   return (parseInt(tank.css("left")) - 10) + 'px';
-    // });
+    this._battlefield.move(DIRECTION.LEFT);
   }
   else if (e.keyCode == KEYCODE_RIGHT) {
-    this._tank.move(DIRECTION.RIGHT);
-    // rotate(tank, DIRECTION.RIGHT);
-    // move(tank, DIRECTION.RIGHT);
-  	// tank.style.left = (parseInt(tank.style.left) + 10) + 'px';
+    this._battlefield.move(DIRECTION.RIGHT);
   }
   else if (e.keyCode == KEYCODE_UP) {
-    this._tank.move(DIRECTION.UP);
-    // rotate(tank, DIRECTION.UP);
-    // move(tank, DIRECTION.UP);
-    // tank.style.top = (parseInt(tank.style.top) - 10) + 'px';
+    this._battlefield.move(DIRECTION.UP);
   }
   else if (e.keyCode == KEYCODE_DOWN) {
-    this._tank.move(DIRECTION.DOWN);
-    // rotate(tank, DIRECTION.DOWN);
-    // move(tank, DIRECTION.DOWN);
-    // tank.style.top = (parseInt(tank.style.top) + 10) + 'px';
+    this._battlefield.move(DIRECTION.DOWN);
   }
 }
 
-Game.prototype.onKeyUp = function () {
-  //var tank = $("#tank");
-
-  // var curDir = tankObj.getDir();
-  // tank.css({'background-image' : curDir.staticPic});
+Game.prototype.onKeyUp = function (e) {
+  if (e.keyCode == KEYCODE_LEFT) {
+    this._battlefield.stopMove(DIRECTION.LEFT);
+  }
+  else if (e.keyCode == KEYCODE_RIGHT) {
+    this._battlefield.stopMove(DIRECTION.RIGHT);
+  }
+  else if (e.keyCode == KEYCODE_UP) {
+    this._battlefield.stopMove(DIRECTION.UP);
+  }
+  else if (e.keyCode == KEYCODE_DOWN) {
+    this._battlefield.stopMove(DIRECTION.DOWN);
+  }
 }
